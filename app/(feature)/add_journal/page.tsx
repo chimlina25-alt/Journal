@@ -2,13 +2,14 @@
 
 export const dynamic = 'force-dynamic';
 
+import { Suspense } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import UserProfile from "@/app/components/UserProfile";
 import { createClient } from "@/utils/supabase/client";
 
-export default function AddJournalPage() {
+function AddJournalPageContent() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -212,5 +213,13 @@ export default function AddJournalPage() {
       </div>
 
     </main>
+  );
+}
+
+export default function AddJournalPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AddJournalPageContent />
+    </Suspense>
   );
 }
