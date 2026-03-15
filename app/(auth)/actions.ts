@@ -37,6 +37,11 @@ export async function signup(prevState: ActionState, formData: FormData): Promis
     const email = formData.get('email') as string
     const password = formData.get('password') as string
     const confirmPassword = formData.get('confirm-password') as string
+    const fullName = formData.get('fullName') as string
+
+    if (!fullName) {
+        return { error: 'Full name is required' }
+    }
 
     if (!email || !password) {
         return { error: 'Email and password are required' }
@@ -49,6 +54,13 @@ export async function signup(prevState: ActionState, formData: FormData): Promis
     const { error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+            data: {
+                full_name: fullName,
+                fullName: fullName,
+                name: fullName,
+            }
+        }
     })
 
     if (error) {

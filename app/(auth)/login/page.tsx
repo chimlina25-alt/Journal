@@ -82,10 +82,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Google Login */}
-          <button className="w-full py-2 rounded-md border border-gray-300 bg-white">
-            Login with Google
-          </button>
+          
 
           {/* Sign up */}
           <p className="text-xs text-center mt-3">

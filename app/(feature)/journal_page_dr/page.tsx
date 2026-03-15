@@ -1,129 +1,155 @@
-import Link from "next/link";
+"use client";
 
-export default function DashboardPage() {
-  const journals = [
-    {
-      date: "19/02/2026",
-      text:
-        "I felt more focused today than usual. I managed my time better and completed most of what I planned.",
-    },
-    {
-      date: "15/02/2026",
-      text:
-        "Today was a bit stressful, but I'm glad it's over. I took a deep breath and reminded myself not everything has to be perfect.",
-    },
-    {
-      date: "13/02/2026",
-      text:
-        "I tried something new today, and it pushed me out of my comfort zone. Growth really starts with small courage.",
-    },
-  ];
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import UserProfile from "@/app/components/UserProfile";
+import { createClient } from "@/utils/supabase/client";
+import { Pacifico } from "next/font/google";
+import { useRouter } from "next/navigation";
+
+const pacifico = Pacifico({
+  subsets: ["latin"],
+  weight: "400",
+});
+
+type Journal = {
+  id: string;
+  content: string;
+  created_at: string;
+};
+
+export default function JournalDraftPage() {
+
+  const supabase = createClient();
+  const router = useRouter();
+  const [journals, setJournals] = useState<Journal[]>([]);
+
+  useEffect(() => {
+    loadDrafts();
+  }, []);
+
+  const loadDrafts = async () => {
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("journals")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("status", "draft")
+      .order("created_at", { ascending: false });
+
+    setJournals(data || []);
+  };
+
+  /* DELETE JOURNAL */
+  const deleteJournal = async (id: string) => {
+
+    const confirmDelete = confirm("Delete this journal?");
+    if (!confirmDelete) return;
+
+    const { error } = await supabase
+      .from("journals")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.log(error);
+      return;
+    }
+
+    setJournals(journals.filter(j => j.id !== id));
+  };
 
   return (
     <main
-      className="absolute inset-0 bg-cover bg-center filter brightness-110 saturate-75"
-      style={{ backgroundImage: `url('/${['bg2.jpg', 'bg3.jpg', 'bg4.jpg', 'bg6.jpg', 'bg5.jpg', 'bg7.jpg', 'bg8.PNG'][new Date().getDay()]}')` }}
+      className="min-h-screen bg-cover bg-center px-6 py-8"
+      style={{
+        backgroundImage: `url('/${
+          ["bg2.jpg","bg3.jpg","bg4.jpg","bg6.jpg","bg5.jpg","bg7.jpg","bg8.PNG"][new Date().getDay()]
+        }')`,
+      }}
     >
-      <div className="max-w-6xl mx-auto px-6 py-6">
 
-        {/* ================= HEADER ================= */}
-        <div className="relative mb-8">
+      <div className="max-w-4xl mx-auto">
 
-          {/* CENTER TITLE */}
-          <div className="flex flex-col items-center">
-            <img src="/book.png" className="w-20 mb-1" />
-            <h1 className="font-semibold">Your Journal</h1>
+        {/* HEADER */}
+        <div className="relative flex items-center justify-center mb-8">
+
+          <div className="flex items-center gap-4">
+            <img src="/book.png" className="w-24 h-24" alt="Journal Book" />
+            <h1 className={`${pacifico.className} text-3xl text-black/80`}>
+              Your Journal
+            </h1>
           </div>
 
-          {/* USER */}
-          <div className="absolute right-0 top-0 flex flex-col items-center">
-            <div className="bg-yellow-200 p-3 rounded-xl shadow">
-              👤
-            </div>
-
-            <div className="flex items-center gap-1 bg-white/70 px-3 py-1 rounded-full mt-2 text-sm shadow">
-              User Name
-              <img src="/edit.png" className="w-3 h-3" />
-            </div>
+          <div className="absolute right-0">
+            <UserProfile variant="compact" />
           </div>
+
         </div>
 
-        {/* ================= SEARCH ================= */}
-        <input
-          placeholder="Search"
-          className="w-full bg-white/80 rounded-xl px-4 py-3 shadow mb-8 outline-none"
-        />
-
-        {/* ================= TABS ================= */}
-        <div className="flex justify-center items-center gap-12 mb-10">
-          <Link href="/journal_page_saved">
-            <button className="font-medium">Saved</button>
-          </Link>
-
-          <div className="h-6 w-[1px] bg-black/30"></div>
-
-          <button className="bg-white/70 px-4 py-1 rounded-md shadow">
-            Draft
-          </button>
+        {/* TABS */}
+        <div className="flex justify-center gap-10 mb-10 text-white">
+          <Link href="/journal_page_saved">Saved</Link>
+          <button className="font-semibold underline">Draft</button>
         </div>
 
-        {/* ================= JOURNAL LIST ================= */}
-        <div className="space-y-6 mb-12">
-          {journals.map((item, index) => (
+        {/* JOURNAL LIST */}
+        <div className="space-y-6">
+
+          {journals.map((journal) => (
+
             <div
-              key={index}
-              className="bg-white/70 rounded-2xl p-5 flex justify-between items-center shadow"
+              key={journal.id}
+              onClick={() => router.push(`/add_journal?id=${journal.id}`)}
+              className="bg-white/80 rounded-xl p-5 shadow relative cursor-pointer hover:scale-[1.02] transition"
             >
-              {/* TEXT */}
-              <div className="max-w-xl">
-                <p className="text-sm">
-                  <span className="font-semibold">
-                    {item.date} :
-                  </span>{" "}
-                  {item.text}
-                </p>
-              </div>
 
-              {/* RIGHT SIDE (same as saved) */}
-              <div className="flex items-center gap-6">
+              {/* DELETE BUTTON */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteJournal(journal.id);
+                }}
+                className="absolute top-4 right-4 opacity-70 hover:opacity-100"
+              >
+                
+                 🗑
+              </button>
 
-                {/* IMAGE PREVIEW */}
-                <div className="flex gap-2">
-                  <div className="w-14 h-14 bg-gray-200 rounded-md flex items-center justify-center">
-                    🖼️
-                  </div>
-                  <div className="w-14 h-14 bg-gray-300 rounded-md flex items-center justify-center">
-                    🖼️
-                  </div>
-                </div>
+              <p className="text-sm text-gray-500 mb-2">
+                {new Date(journal.created_at).toLocaleDateString()}
+              </p>
 
-                {/* ACTION ICONS */}
-                <div className="flex flex-col gap-3 text-sm">
-                  ✏️
-                  🗑️
-                </div>
+              <p>{journal.content}</p>
 
-              </div>
             </div>
+
           ))}
+
         </div>
 
-        {/* ================= BOTTOM NAV (same as saved) ================= */}
-        <div className="flex justify-center items-center gap-16">
+        {/* BOTTOM NAV */}
+        <div className="flex justify-center gap-16 mt-12">
+
           <Link href="/add_journal">
-            <img src="/add.png" className="w-6" />
+            <img src="/add.png" className="w-6"/>
           </Link>
 
           <Link href="/dashboard">
-            <img src="/home.png" alt="home" className="w-6 h-6" />
+            <img src="/home.png" className="w-6"/>
           </Link>
 
           <Link href="/to_do_list">
-            <img src="/edit.png" alt="edit" className="w-6 h-6 opacity-70" />
+            <img src="/edit.png" className="w-6"/>
           </Link>
+
         </div>
 
       </div>
+
     </main>
   );
 }
